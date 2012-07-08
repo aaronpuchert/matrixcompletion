@@ -1,4 +1,4 @@
-# Daten einlesen
+# read csv data
 read.data <- function (filename, ...)
 {
 	tab <- read.table(filename, sep=",", header=FALSE, col.names = c("user", "movie", "stars"), ...);
@@ -6,7 +6,7 @@ read.data <- function (filename, ...)
 	tab
 }
 
-# Daten reduzieren
+# reduce user and movie domain
 reduce.data <- function (df, feat=-length(df))
 {
 	ui <- sort(union(df$user, NULL));
@@ -16,11 +16,11 @@ reduce.data <- function (df, feat=-length(df))
 	list(data=df,ui=ui,mi=mi)
 }
 
-# Daten plotten
-plot.data <- function(df, ...)
-{plot.default(df[-3], pch=".", col = rainbow(5)[df[[3]]], ...)}
+# plot in rainbow colors
+plot.data <- function(df, sr=5, ...)
+{plot.default(df[-3], pch=".", col = rainbow(sr)[df[[3]]], ...)}
 
-# Matrix erstellen
+# create data matrix
 matrix.data <- function (df, init=0)
 {
 	mat <- matrix(init, max(df[[1]]), max(df[[2]]));
