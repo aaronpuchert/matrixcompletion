@@ -51,6 +51,7 @@ error.data <- function(df.test) {sqrt(mean((df.test$stars - df.test$est)^2))}
 crossval <- function(df, m, alg, ...)
 {
 	err <- 0; len <- length(df[[1]]);
+	df <- df[sample(len),];		# permute randomly to gain fair results
 	for (i in 1:m) {
 		# split data set
 		df.test <- df[((i-1)*len/m):(i*len/m),];
