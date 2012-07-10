@@ -3,7 +3,7 @@
 read.data <- function (filename, ...)
 {
 	tab <- read.table(filename, sep=",", header=FALSE, ...);
-	if (dim(tab)[2] == 2) colnames(tab) <- c("user", "movie") else colnames(tab) <- c("user", "movie", "stars");
+	if (ncol(tab) == 2) colnames(tab) <- c("user", "movie") else colnames(tab) <- c("user", "movie", "stars");
 	class(tab) <- c("data", "data.frame");
 	tab
 }
@@ -22,8 +22,8 @@ expand.data <- function (reduced, ui, mi)
 }
 
 # plot in rainbow colors
-plot.data <- function(df, sr=5, ...)
-{plot.default(df[-3], pch=".", col = rainbow(sr)[df[[3]]], ...)}
+plot.data <- function(df, sr=5, col=3, ...)
+{plot.default(df[-3], pch=".", col = rainbow(sr)[df[[col]]], ...)}
 
 # create data matrix
 matrix.data <- function (df, init=0)
@@ -50,7 +50,7 @@ error.data <- function(df.test) {sqrt(mean((df.test$stars - df.test$est)^2))}
 # cross-validation
 crossval <- function(df, m, alg, ...)
 {
-	err <- 0; len <- length(df[[1]]);
+	err <- 0; len <- nrow(df);
 	df <- df[sample(len),];		# permute randomly to gain fair results
 	for (i in 1:m) {
 		# split data set
