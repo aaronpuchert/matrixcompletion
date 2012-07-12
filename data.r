@@ -35,10 +35,10 @@ matrix.data <- function (df, init=0)
 
 ### EVALUATION & OUTPUT ###
 # evaluate matrix on test data set
-eval <- function(df.test, mat)
+eval <- function(df, mat)
 {
-	new <- apply(df.test, 1, function(x) {c(x, est=mat[x[[1]],x[[2]]]);});
-	as.data.frame(t(new))
+	df <- cbind(df, est=NA);
+	df$est <- mat[(df$movie-1)*nrow(mat)+df$user]; df
 }
 
 # write to result file
@@ -50,18 +50,17 @@ error.data <- function(df.test) {sqrt(mean((df.test$stars - df.test$est)^2))}
 # cross-validation
 crossval <- function(df, m, alg, ...)
 {
-	err <- 0; len <- nrow(df);
+	len <- nrow(df); df <- cbind(df, est=NA);
 	df <- df[sample(len),];		# permute randomly to gain fair results
 	for (i in 1:m) {
-		# split data set
-		df.test <- df[((i-1)*len/m):(i*len/m),];
-		df.learn <- df[-(((i-1)*len/m):(i*len/m)),];
+		# select test data
+		ind <- ceiling((i-1)*len/m):floor(i*len/m);
 		# learn
-		mat <- alg(df.learn, ...);
+		mat <- alg(df[-ind,], ...);
 		# estimate on test data
-		df.test <- eval(df.test, mat);
-		# compute RMSE
-		err <- err + error.data(df.test)^2
+		df$est[ind] <- mat[(df$movie[ind]-1)*nrow(mat) + df$user[ind]];
 	}
-	sqrt(err/m)
+
+	# now compute RMSE and tendencies of deviation
+	sqrt(c(error = error.data(df), lm(est ~ stars, data=df)$coefficients))
 }

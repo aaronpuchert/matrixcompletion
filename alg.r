@@ -1,5 +1,5 @@
 # svd algorithm with constant k
-svd.alg <- function(df, init=1, k=1, eps=0.05)
+svd.alg <- function(df, init=mean(df$stars), k=1, eps=0.01)
 {
 	mat <- matrix(init, max(df$user), max(df$movie));
 	given <- mask <- matrix(0, max(df$user), max(df$movie));
