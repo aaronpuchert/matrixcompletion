@@ -22,8 +22,8 @@ expand.data <- function (reduced, ui, mi)
 }
 
 # plot in rainbow colors
-plot.data <- function(df, sr=5, col=3, ...)
-{plot.default(df[-3], pch=".", col = rainbow(sr)[df[[col]]], ...)}
+plot.data <- function(df, rg=c(1,5), col=3, ...)
+{plot.default(df[c(1,2)], pch=".", col = hsv(h=(df[[col]]-rg[1])/(rg[2]-rg[1])), ...)}
 
 # create data matrix
 matrix.data <- function (df, init=0)
