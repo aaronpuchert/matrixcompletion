@@ -17,3 +17,13 @@ svd.alg <- function(df, init=1, k=1, eps=0.05)
 	print(errvec);
 	return(mat)
 }
+
+# some post processing
+post.clamp <- function(data, rg) { ifelse(data<rg[1], rg[1], ifelse(data>rg[2], rg[2], data)) }
+post.linear <- function(data, rg) { old<-range(data); (data-old[1])/(old[2]-old[1])*(rg[2]-rg[1])+rg[1] }
+post.logistic <- function(data, rg)
+{
+	data <- (2*data-(rg[1]+rg[2]))/(rg[2]-rg[1]);	# scale to [-1,1]
+	data <- 1/(1+exp(-2*data));						# apply logistic function with derivative 1/2 in 0.
+	data*(rg[2]-rg[1]) + rg[1]
+}
