@@ -44,23 +44,27 @@ eval <- function(df, mat)
 # write to result file
 write.data <- function(df.test, filename, ...) {write.table(df.test, filename, sep=",", col.names=FALSE, row.names=FALSE, ...)}
 
-# compute RMSE
-error.data <- function(df.test) {sqrt(mean((df.test$stars - df.test$est)^2))}
+# compute error (& analyze it)
+error.data <- function(df.test)
+{
+	list(error = sqrt(mean((df.test$stars - df.test$est)^2)),
+		lm = lm(est ~ stars, data=df.test)$coefficients)
+}
 
 # cross-validation
 crossval <- function(df, m, alg, ...)
 {
 	len <- nrow(df); df <- cbind(df, est=NA);
-	df <- df[sample(len),];		# permute randomly to gain fair results
+	perm <- sample(len);		# permute randomly to gain fair results
 	for (i in 1:m) {
 		# select test data
-		ind <- ceiling((i-1)*len/m):floor(i*len/m);
+		ind <- perm[ceiling((i-1)*len/m):floor(i*len/m)];
 		# learn
 		mat <- alg(df[-ind,], ...);
 		# estimate on test data
 		df$est[ind] <- mat[(df$movie[ind]-1)*nrow(mat) + df$user[ind]];
 	}
 
-	# now compute RMSE and tendencies of deviation
-	sqrt(c(error = error.data(df), lm(est ~ stars, data=df)$coefficients))
+	# return cross-validated data set
+	return(df)
 }
