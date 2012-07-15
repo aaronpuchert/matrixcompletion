@@ -1,9 +1,10 @@
 # svd algorithm with constant k
-svd.alg <- function(df, init=mean(df$stars), k=1, eps=0.01)
+alg.svd <- function(df, init=mean(df$stars), k=1, eps=0.01)
 {
 	mat <- matrix(init, max(df$user), max(df$movie));
 	given <- mask <- matrix(0, max(df$user), max(df$movie));
-	apply(df, 1, function(x) {given[x[[1]],x[[2]]] <<- x[[3]]; mask[x[[1]],x[[2]]] <<- 1} );
+	given[(df$movie-1)*nrow(mat)+df$user] <- df$stars;
+	mask[(df$movie-1)*nrow(mat)+df$user] <- 1;
 
 	errvec <- max(df$stars) - min(df$stars);
 	errvec <- c(errvec, errvec/(1-eps)^2);

@@ -26,10 +26,10 @@ plot.data <- function(df, rg=c(1,5), col=3, ...)
 {plot.default(df[c(1,2)], pch=".", col = hsv(h=(df[[col]]-rg[1])/(rg[2]-rg[1])), ...)}
 
 # create data matrix
-matrix.data <- function (df, init=0)
+matrix.data <- function (df, init=NA)
 {
 	mat <- matrix(init, max(df[[1]]), max(df[[2]]));
-	apply(df, 1, function(x) {mat[x[[1]],x[[2]]] <<- x[[3]]});
+	mat[(df$movie-1)*nrow(mat)+df$user] <- df$stars;
 	mat
 }
 
