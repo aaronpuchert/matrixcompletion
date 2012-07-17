@@ -19,18 +19,17 @@ alg.svd <- function(df, init=mean(df$stars), k=1, eps=0.01)
 }
 
 # Hazan's algorithm with assumed contraction speed c of von Mises iteration
-alg.hazan <- function(df, tr=1, alpha=0.05, eps=0.01, c=0.5)
+alg.hazan <- function(df, tr=1, alpha=0.05, eps=0.01, c=0.1)
 {
 	n <- max(df$user); m <- max(df$movie); len <- nrow(df);
 	Y <- matrix(NA, n+m, n+m);
 	Y[(df$movie-1)*nrow(mat)+df$user+m] <- df$stars;
 
 	i <- 0; v <- runif(n+m);
-	X <- tr * (v %*% t(v)) / (t(v) %*% v);
+	X <- tr * (v %*% t(v)) / sum(v*v);
 	errvec <- (sum(ifelse(Y!=NA, (X-Y)^2, 0))/len) * c(1/(1-eps)^2, 1/(1-eps)^4);
 
-	w <- runif(n+m); Z <- tr * (w %*% t(w)) / (t(w) %*% w)
-	Cf <- sum((X-Z)^2 * (Y!=NA))/len;	# this is just a lower bound (if necessary, enhance)
+	Cf <- tr^2 * curvature(df[c(1,2)]);
 	while (errvec[1]/errvec[2] < 1-eps) {
 		errvec <- c(sum(ifelse(Y!=NA, (X-Y)^2, 0))/len, errvec);
 		alpha <- 2/(i+2);	i <- i+1;
@@ -49,6 +48,21 @@ alg.hazan <- function(df, tr=1, alpha=0.05, eps=0.01, c=0.5)
 
 	print(errvec);
 	return(X[(m+1):(n+m),1:m])
+}
+
+# compute lower bound for the "curvature constant" C_f
+curvature <- function(df, samples=10)
+{
+	n <- max(df$user); m <- max(df$movie); len <- nrow(df);
+	Y <- matrix(0, n+m, n+m);
+	Y[(df$movie-1)*nrow(mat)+df$user+m] <- 1;
+
+	samp <- vector("list", samples);
+	for (i in 1:samples) { v <- runif(n+m); samp[[i]] <<- (v %*% t(v)) / sum(v*v) }
+
+	maximum <- 0;
+	for (i in 1:samples) for (j in 1:samples) { diff<-sum((samp[[i]]-samp[[j]])^2 * Y)/len; maximum <- max(maximum, diff)};
+	return(maximum)
 }
 
 # some post processing
