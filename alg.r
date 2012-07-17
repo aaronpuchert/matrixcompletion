@@ -6,8 +6,7 @@ alg.svd <- function(df, init=mean(df$stars), k=1, eps=0.01)
 	given[(df$movie-1)*nrow(mat)+df$user] <- df$stars;
 	mask[(df$movie-1)*nrow(mat)+df$user] <- 1;
 
-	errvec <- max(df$stars) - min(df$stars);
-	errvec <- c(errvec, errvec/(1-eps)^2);
+	errvec <- (max(df$stars) - min(df$stars)) * c(1, 1/(1-eps)^2);
 	while (errvec[1]/errvec[2] < 1-eps) {
 		errvec <- c(sqrt(sum((mat*mask-given)^2) / nrow(df)), errvec);
 		mat <- mat*(1-mask)+given;
@@ -20,22 +19,30 @@ alg.svd <- function(df, init=mean(df$stars), k=1, eps=0.01)
 }
 
 # Hazan's algorithm
-alg.hazan <- function(df, t=1, eps=0.01)
+alg.hazan <- function(df, tr=1, alpha=0.05, eps=0.01)
 {
 	n <- max(df$user); m <- max(df$movie); l <- nrow(df);
 	Y <- matrix(NA, n+m, n+m);
-	apply(df, 1, function(x) {Y[x[[1]]+m, x[[2]]] <<- x[[3]]} );
+	Y[(df$movie-1)*nrow(mat)+df$user+m] <- df$stars;
+	Cf <- 0; # ???
 
-	errvec <- max(df$stars) - min(df$stars);	# how to initialize?
-	errvec <- c(errvec, errvec/(1-eps)^2);
 	i <- 0; v <- runif(n+m);
-	X <- t * v %*% t(v);
+	X <- tr * (v %*% t(v)) / (t(v) %*% v);
+	 errvec <- (sum(ifelse(Y!=NA, (X-Y)^2, 0))/l) * c(1/(1-eps)^2, 1/(1-eps)^4); 
 	while (errvec[1]/errvec[2] < 1-eps) {
 		errvec <- c(sum(ifelse(Y!=NA, (X-Y)^2, 0))/l, errvec);
 		alpha <- 2/(i+2);	i <- i+1;
 		Nabla <- ifelse(Y!=NA, 2*(X-Y), 0);
-		eig <- eigen(Nabla, symmetric=TRUE);
-		X <- (1-alpha)*X + alpha*t*eig$vectors[1,] %*% t(eig$vectors[1,]);
+
+		# von Mises iteration
+		v <- runif(n+m); l <- 0;
+		while (l + alpha*Cf/t < ...) { # ???
+			v <- Nabla %*% v;
+			l <- sqrt(sum(v*v));
+			v <- v/l;
+		}
+
+		X <- (1-alpha)*X + alpha*tr * v %*% t(v);
 	};
 
 	print(errvec);
