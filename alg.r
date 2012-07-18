@@ -58,7 +58,13 @@ curvature <- function(df, samples=10)
 	Y[(df$movie-1)*nrow(mat)+df$user+m] <- 1;
 
 	samp <- vector(mode="list", length=samples);
-	for (i in 1:samples) { v <- runif(n+m); samp[[i]] <- (v %*% t(v)) / sum(v*v); };
+	for (i in 1:samples) {
+		A <- matrix(rnorm((n+m)^2), nrow=n+m);		# generate n indepent vectors
+		A <- apply(A, 2,
+			function(x) {x/sqrt(sum(x*x))});		# normalize them
+		w <- rexp(n+m, 1/(n+m)); w <- w / sum(w);	# generate weights
+		samp[[i]] <- A %*%	(t(A)*w);				# generate matrix
+	};
 
 	maximum <- 0;
 	for (i in 1:samples) for (j in 1:samples) { diff<-sum((samp[[i]]-samp[[j]])^2 * Y)/len; maximum <- max(maximum, diff)};
