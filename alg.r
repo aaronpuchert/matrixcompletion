@@ -19,7 +19,7 @@ alg.svd <- function(df, init=mean(df$stars), k=1, eps=0.01)
 }
 
 # Hazan's algorithm with assumed contraction speed c of von Mises iteration
-alg.hazan <- function(df, tr=1, eps=0.01, Cf=tr^2 * curvature(df[c(1,2)]))
+alg.hazan <- function(df, tr=1, eps=0.01, Cf=tr^2 * curvature(df[c(1,2)]), maxhist=5)
 {
 	n <- max(df$user); m <- max(df$movie); len <- nrow(df);
 	Y <- matrix(0, n+m, n+m);
@@ -30,8 +30,12 @@ alg.hazan <- function(df, tr=1, eps=0.01, Cf=tr^2 * curvature(df[c(1,2)]))
 	X <- tr * (v %*% t(v)) / sum(v*v);
 	errvec <- (sum(ifelse(Y!=0, (X-Y)^2, 0))/len) * c(1/(1-eps)^2, 1/(1-eps)^4);
 
-	while (errvec[1]/errvec[2] < 1-eps) {
+	decr <- 1;
+	while (decr > eps | i < 10) {
 		errvec <- c(sum(ifelse(Y!=0, (X-Y)^2, 0))/len, errvec);
+		hist <- min(maxhist, length(errvec));
+		decr <- lm(errvec[1:hist] ~ as.numeric(1:hist))$coefficients[[2]]
+
 		alpha <- 2/(i+2);	i <- i+1;
 		Nabla <- ifelse(Y!=0, 2*(X-Y), 0);
 
