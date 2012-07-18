@@ -68,3 +68,20 @@ crossval <- function(df, m, alg, ...)
 	# return cross-validated data set
 	return(df)
 }
+
+### META-ROUTINES ###
+read.all <- function(trainfile, qualfile)
+{
+	train <- read.data(trainfile);
+	newtrain <- reduce.data(train);
+	qual <- read.data(qualfile);
+	newqual <- reduce.data(qual, newtrain$ui, newtrain$mi);
+	list(train=newtrain$data, qual=newqual$data, ui=newtrain$ui, mi=newtrain$mi)
+}
+
+write.res <- function(all, mat, resfile)
+{
+	qual <- eval(all$qual, mat);
+	qual <- expand.data(qual, all$ui, all$mi);
+	write.data(qual, resfile);
+}
