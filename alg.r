@@ -24,6 +24,7 @@ alg.hazan <- function(df, tr=1, eps=0.01, c=0.1, Cf=tr^2 * curvature(df[c(1,2)])
 	n <- max(df$user); m <- max(df$movie); len <- nrow(df);
 	Y <- matrix(0, n+m, n+m);
 	Y[(df$movie-1)*(n+m)+df$user+m] <- df$stars;
+	Y[(df$user-1+m)*(n+m)+df$movie] <- df$stars;
 
 	i <- 0; v <- rnorm(n+m);
 	X <- tr * (v %*% t(v)) / sum(v*v);
@@ -39,7 +40,7 @@ alg.hazan <- function(df, tr=1, eps=0.01, c=0.1, Cf=tr^2 * curvature(df[c(1,2)])
 		l<-2; oldl<-1;	# better initialization
 		while (l/oldl > 1 + c*alpha*Cf/tr) {
 			v <- Nabla %*% v;
-			l <- sqrt(sum(v*v));
+			oldl <- l; l <- sqrt(sum(v*v));
 			v <- v/l;
 		}
 
