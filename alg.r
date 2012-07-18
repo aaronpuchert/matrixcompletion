@@ -28,8 +28,8 @@ alg.hazan <- function(df, tr=1, eps=0.01, Cf=tr^2 * curvature(df[c(1,2)]), maxhi
 	Y[(df$movie-1)*(n+m)+df$user+m] <- df$stars;	# "given" matrix Y we want to approximate 
 	Y[(df$user-1+m)*(n+m)+df$movie] <- df$stars;
 
-	# random initialization of R, x uniformly dist. on S^(n+m-1)
-	i <- 0; v <- rnorm(n+m);
+	# initialize X = v*v^T with an eigenvector belonging to the greatest eigenvalue 
+	i <- 0; v <- power.method(Y, Cf/tr);
 	X <- tr * (v %*% t(v)) / sum(v*v);
 	errvec <- (sum(ifelse(Y!=0, (X-Y)^2, 0))/len) * c(1/(1-eps)^2, 1/(1-eps)^4);
 
@@ -44,7 +44,7 @@ alg.hazan <- function(df, tr=1, eps=0.01, Cf=tr^2 * curvature(df[c(1,2)]), maxhi
 		# compute "symmetricized" gradient matrix of f(X) = \sum_(\Omega+(0,m)) (X_ij-Y_ij)^2
 		Nabla <- ifelse(Y!=0, 2*(X-Y), 0);
 
-		# "power method" to compute an eigenvector corresponding to the greatest eigenvalue
+		# compute an eigenvector corresponding to the greatest eigenvalue
 		v <- power.method(Nabla, alpha*Cf/tr);
 
 		# blend old X with tr*v*v^T
@@ -73,11 +73,11 @@ curvature <- function(df, samples=10)
 {
 	n <- max(df$user); m <- max(df$movie); len <- nrow(df);
 	Y <- matrix(0, n+m, n+m);
-	Y[(df$movie-1)*nrow(mat)+df$user+m] <- 1;
+	Y[(df$movie-1)*nrow(Y)+df$user+m] <- 1;
 
 	samp <- vector(mode="list", length=samples);
 	for (i in 1:samples) {
-		A <- matrix(rnorm((n+m)^2), nrow=n+m);		# generate n indepent vectors
+		A <- matrix(rnorm((n+m)^2), nrow=n+m);		# generate n independent vectors
 		A <- apply(A, 2,
 			function(x) {x/sqrt(sum(x*x))});		# normalize them
 		w <- rexp(n+m, n+m); w <- w / sum(w);		# generate weights
