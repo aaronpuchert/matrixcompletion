@@ -45,13 +45,7 @@ alg.hazan <- function(df, tr=1, eps=0.01, Cf=tr^2 * curvature(df[c(1,2)]), maxhi
 		Nabla <- ifelse(Y!=0, 2*(X-Y), 0);
 
 		# "power method" to compute an eigenvector corresponding to the greatest eigenvalue
-		v <- runif(n+m); v <- v/sqrt(sum(v*v));
-		l<-2; oldl<-1;	# not "correct", but works in high dimensions
-		while (l/oldl > 1 + alpha*Cf/tr) {
-			v <- Nabla %*% v;
-			oldl <- l; l <- sqrt(sum(v*v));
-			v <- v/l;
-		}
+		v <- power.method(Nabla, alpha*Cf/tr);
 
 		# blend old X with tr*v*v^T
 		X <- (1-alpha)*X + alpha*tr * v %*% t(v);
@@ -59,6 +53,19 @@ alg.hazan <- function(df, tr=1, eps=0.01, Cf=tr^2 * curvature(df[c(1,2)]), maxhi
 
 	print(errvec);
 	return(X[(m+1):(n+m),1:m])
+}
+
+# "power method" to compute an eigenvector corresponding to the greatest eigenvalue
+power.method <- function(A, eps)
+{
+	v <- runif(dim(A)[1]); v <- v/sqrt(sum(v*v));
+	l<-2; oldl<-1;	# not "correct", but works in high dimensions
+	while (l/oldl > 1 + eps) {
+		v <- A %*% v;
+		oldl <- l; l <- sqrt(sum(v*v));
+		v <- v/l;
+	}
+	return(v)
 }
 
 # compute lower bound for the "curvature constant" C_f
