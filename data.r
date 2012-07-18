@@ -69,6 +69,36 @@ crossval <- function(df, m, alg, ...)
 	return(df)
 }
 
+# find the minimum of a convex (not necessarily diff'able) function, assuming the given interval contains it
+gen.bisect <- function(fun, left, right, numit=20)
+{
+	middle <- runif(1, left, right);
+	fmiddle <- fun(middle);
+
+	for (i in 1:numit) {
+		new <- runif(1, left, right);
+		fnew <- fun(new);
+		if (new < middle) {			# "new" left of "middle"
+			if (fnew < fmiddle) {
+				right <- middle;
+				middle <- new;
+				fmiddle <- fnew;
+			}
+			else {left <- new;}
+		}
+		else {						# "new" right of "middle"
+			if (fnew < fmiddle) {
+				left <- middle;
+				middle <- new;
+				fmiddle <- fnew;
+			}
+			else {right <- new;}
+		}
+	}
+
+	return(middle);
+}
+
 ### META-ROUTINES ###
 read.all <- function(trainfile, qualfile)
 {
