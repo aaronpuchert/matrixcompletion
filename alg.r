@@ -19,25 +19,25 @@ alg.svd <- function(df, init=mean(df$stars), k=1, eps=0.01)
 }
 
 # Hazan's algorithm with assumed contraction speed c of von Mises iteration
-alg.hazan <- function(df, tr=1, alpha=0.05, eps=0.01, c=0.1)
+alg.hazan <- function(df, tr=1, eps=0.01, c=0.1, Cf=tr^2 * curvature(df[c(1,2)]))
 {
 	n <- max(df$user); m <- max(df$movie); len <- nrow(df);
-	Y <- matrix(NA, n+m, n+m);
-	Y[(df$movie-1)*nrow(mat)+df$user+m] <- df$stars;
+	Y <- matrix(0, n+m, n+m);
+	Y[(df$movie-1)*(n+m)+df$user+m] <- df$stars;
 
-	i <- 0; v <- runif(n+m);
+	i <- 0; v <- rnorm(n+m);
 	X <- tr * (v %*% t(v)) / sum(v*v);
-	errvec <- (sum(ifelse(Y!=NA, (X-Y)^2, 0))/len) * c(1/(1-eps)^2, 1/(1-eps)^4);
+	errvec <- (sum(ifelse(Y!=0, (X-Y)^2, 0))/len) * c(1/(1-eps)^2, 1/(1-eps)^4);
 
-	Cf <- tr^2 * curvature(df[c(1,2)]);
 	while (errvec[1]/errvec[2] < 1-eps) {
-		errvec <- c(sum(ifelse(Y!=NA, (X-Y)^2, 0))/len, errvec);
+		errvec <- c(sum(ifelse(Y!=0, (X-Y)^2, 0))/len, errvec);
 		alpha <- 2/(i+2);	i <- i+1;
-		Nabla <- ifelse(Y!=NA, 2*(X-Y), 0);
+		Nabla <- ifelse(Y!=0, 2*(X-Y), 0);
 
 		# von Mises iteration
-		v <- runif(n+m); l<-2; oldl<-1;	# better initialization
-		while (l/oldl > 1 + c*alpha*Cf/t) {
+		v <- runif(n+m); v <- v/sqrt(sum(v*v));
+		l<-2; oldl<-1;	# better initialization
+		while (l/oldl > 1 + c*alpha*Cf/tr) {
 			v <- Nabla %*% v;
 			l <- sqrt(sum(v*v));
 			v <- v/l;
@@ -62,8 +62,8 @@ curvature <- function(df, samples=10)
 		A <- matrix(rnorm((n+m)^2), nrow=n+m);		# generate n indepent vectors
 		A <- apply(A, 2,
 			function(x) {x/sqrt(sum(x*x))});		# normalize them
-		w <- rexp(n+m, 1/(n+m)); w <- w / sum(w);	# generate weights
-		samp[[i]] <- A %*%	(t(A)*w);				# generate matrix
+		w <- rexp(n+m, n+m); w <- w / sum(w);		# generate weights
+		samp[[i]] <- A %*% (t(A)*w);				# generate matrix
 	};
 
 	maximum <- 0;
