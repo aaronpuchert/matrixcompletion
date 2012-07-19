@@ -52,7 +52,7 @@ error.data <- function(df.test)
 }
 
 # cross-validation
-crossval <- function(df, m, alg, ...)
+crossval <- function(df, m, alg, params)
 {
 	len <- nrow(df); df <- cbind(df, est=NA);
 	perm <- sample(len);		# permute randomly to gain fair results
@@ -60,7 +60,7 @@ crossval <- function(df, m, alg, ...)
 		# select test data
 		ind <- perm[ceiling((i-1)*len/m):floor(i*len/m)];
 		# learn
-		mat <- alg(df[-ind,], ...);
+		mat <- alg(df[-ind,], params);
 		# estimate on test data
 		df$est[ind] <- mat[(df$movie[ind]-1)*nrow(mat) + df$user[ind]];
 	}
@@ -69,8 +69,19 @@ crossval <- function(df, m, alg, ...)
 	return(df)
 }
 
+# "bisection" for parameter tuning
+bisect <- function(df, cvm, alg, params, target, rg, numit=20)
+{
+	gen.bisect(
+		function(x) {
+				params[[target]] <- x;
+				crossval(df, cvm, alg, params)
+			},
+		rg[1], rg[2], numit);
+}
+
 # find the minimum of a convex (not necessarily diff'able) function, assuming the given interval contains it
-gen.bisect <- function(fun, left, right, numit=20)
+gen.bisect <- function(fun, left, right, numit)
 {
 	middle <- runif(1, left, right);
 	fmiddle <- fun(middle);
