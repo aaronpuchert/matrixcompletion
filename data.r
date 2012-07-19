@@ -70,11 +70,11 @@ crossval <- function(df, m, alg, params)
 }
 
 # "bisection" for parameter tuning
-bisect <- function(df, cvm, alg, params, target, rg, numit=20)
+bisect <- function(df, cvm, alg, params, target, rg, numit=20, int=FALSE)
 {
 	gen.bisect(
 		function(x) {
-				params[[target]] <- x;
+				params[[target]] <- ifelse(int, round(x), x);
 				crossval(df, cvm, alg, params)
 			},
 		rg[1], rg[2], numit);
