@@ -51,8 +51,8 @@ error.data <- function(df.test)
 		lm = lm(est ~ stars, data=df.test)$coefficients)
 }
 
-# cross-validation
-crossval <- function(df, m, alg, params)
+# cross evaluation
+crosseval <- function(df, m, alg, params)
 {
 	len <- nrow(df); df <- cbind(df, est=NA)
 	perm <- sample(len)		# permute randomly to gain fair results
@@ -65,7 +65,7 @@ crossval <- function(df, m, alg, params)
 		df$est[ind] <- mat[(df$movie[ind]-1)*nrow(mat) + df$user[ind]]
 	}
 
-	# return cross-validated data set
+	# return cross evaluated data set
 	return(df)
 }
 
@@ -76,7 +76,7 @@ bisect <- function(df, cvm, alg, params, target, rg, numit=20, int=FALSE)
 		function(x) {
 				params[[target]] <- ifelse(int, round(x), x)
 				print(params)
-				res <- crossval(df, cvm, alg, params)
+				res <- crosseval(df, cvm, alg, params)
 				error <- error.data(res)
 				print(error);	error$error
 			},
