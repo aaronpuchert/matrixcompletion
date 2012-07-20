@@ -75,6 +75,7 @@ bisect <- function(df, cvm, alg, params, target, rg, numit=20, int=FALSE)
 	gen.bisect(
 		function(x) {
 				params[[target]] <- ifelse(int, round(x), x)
+				print(params)
 				res <- crossval(df, cvm, alg, params)
 				error <- error.data(res)
 				print(error);	error$error
