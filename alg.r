@@ -1,6 +1,6 @@
 ### ALGORITHMS
 # SVD algorithm with rank k approximation, stops when error decrease is below eps.
-alg.svd <- function(df, pl=alg.svd.pl(df))
+alg.svd <- function(df, pl=alg.svd.pl(df), debug=FALSE)
 {
 	mat <- matrix(pl$init, max(df$user), max(df$movie))
 
@@ -23,7 +23,8 @@ alg.svd <- function(df, pl=alg.svd.pl(df))
 		mat <- sing$u %*% diag(sing$d[1:pl$k],pl$k) %*% sing$v
 	}
 
-	print(errvec)
+	if (debug)
+		print(errvec)
 	return(mat)
 }
 
@@ -32,7 +33,7 @@ alg.svd.pl <- function(df, init=mean(df$stars), k=1, digits=2)
 
 # Hazan's algorithm with target trace tr, curvature constant Cf and eps as above,
 #	averaged on error history of maximum length maxhist.
-alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max(df$movie))))
+alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max(df$movie))), debug=FALSE)
 {
 	n <- max(df$user); m <- max(df$movie); len <- nrow(df)
 
@@ -65,7 +66,8 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 		X <- (1-alpha)*X + alpha*pl$tr * v %*% t(v)
 	}
 
-	print(errvec)
+	if (debug)
+		print(errvec)
 	return(X[(m+1):(n+m),1:m])
 }
 
