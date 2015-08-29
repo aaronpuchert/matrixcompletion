@@ -1,7 +1,15 @@
-
+# Results
 /Results
+
+# R files
 *.RData
 *.Rhistory
+
+# Data
 *.pdf
 *.png
 *.csv
+
+# RStudio files
+*.Rproj
+.Rproj.user

@@ -66,4 +66,4 @@ The output is the (reversed) error history on the training data set. Thus we nee
 case.
 
 [Netflix]: http://www.netflixprize.com//index "The Netflix Prize"
-[Hazan]:   http://theinf2.informatik.uni-jena.de/theinf2_multimedia/Publications/grow_specM.pdf "Joachim Giesen, Martin Jaggi, and Sören Laue: Optimizing over the Growing Spectrahedron"
+[Hazan]:   http://theinf2.informatik.uni-jena.de/theinf2_multimedia/Publications/grow_specM.pdf "Joachim Giesen, Martin Jaggi, and SÃ¶ren Laue: Optimizing over the Growing Spectrahedron"
