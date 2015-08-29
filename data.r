@@ -1,14 +1,18 @@
 ### INPUT PROCESSING ###
-# read csv data
+# Read csv data
 read.data <- function (filename, ...)
 {
 	tab <- read.table(filename, sep=",", header=FALSE, ...)
-	if (ncol(tab) == 2) colnames(tab) <- c("user", "movie") else colnames(tab) <- c("user", "movie", "stars")
+	if (ncol(tab) == 2)
+		colnames(tab) <- c("user", "movie")
+	else
+		colnames(tab) <- c("user", "movie", "stars")
+
 	class(tab) <- c("data", "data.frame")
 	tab
 }
 
-# reduce user and movie domain
+# Reduce user and movie domain
 reduce.data <- function (df, ui = sort(union(df$user, NULL)), mi = sort(union(df$movie, NULL)))
 {
 	df$user <- sapply(df$user, function(x) {which(ui==x)})
@@ -21,11 +25,14 @@ expand.data <- function (reduced, ui, mi)
 	data.frame(user=ui[reduced$user], movie=mi[reduced$movie], reduced[-(1:2)])
 }
 
-# plot in rainbow colors
+# Plot in rainbow colors
 plot.data <- function(df, rg=c(1,5), col=3, ...)
-{plot.default(df[c(1,2)], pch=".", col = hsv(h=(df[[col]]-rg[1])/(rg[2]-rg[1])), ...)}
+{
+	plot.default(df[c(1,2)], pch=".",
+				 col = hsv(h=(df[[col]]-rg[1])/(rg[2]-rg[1])), ...)
+}
 
-# create data matrix
+# Create data matrix
 matrix.data <- function (df, init=NA)
 {
 	mat <- matrix(init, max(df[[1]]), max(df[[2]]))
@@ -34,24 +41,25 @@ matrix.data <- function (df, init=NA)
 }
 
 ### EVALUATION & OUTPUT ###
-# evaluate matrix on test data set
+# Evaluate matrix on test data set
 eval <- function(df, mat)
 {
 	df <- cbind(df, est=NA)
 	df$est <- mat[(df$movie-1)*nrow(mat)+df$user]; df
 }
 
-# write to result file
-write.data <- function(df.test, filename, ...) write.table(df.test, filename, sep=",", col.names=FALSE, row.names=FALSE, ...)
+# Write to result file
+write.data <- function(df.test, filename, ...)
+	write.table(df.test, filename, sep=",", col.names=FALSE, row.names=FALSE, ...)
 
-# compute error (& analyze it)
+# Compute error (& analyze it)
 error.data <- function(df.test)
 {
 	list(error = sqrt(mean((df.test$stars - df.test$est)^2)),
 		lm = lm(est ~ stars, data=df.test)$coefficients)
 }
 
-# cross evaluation
+# Cross evaluation
 crosseval <- function(df, m, alg, params)
 {
 	len <- nrow(df); df <- cbind(df, est=NA)
@@ -69,7 +77,7 @@ crosseval <- function(df, m, alg, params)
 	return(df)
 }
 
-# "bisection" for parameter tuning
+# "Bisection" for parameter tuning
 bisect <- function(df, cvm, alg, params, target, rg, numit=20, int=FALSE)
 {
 	gen.bisect(
@@ -83,7 +91,8 @@ bisect <- function(df, cvm, alg, params, target, rg, numit=20, int=FALSE)
 		rg[1], rg[2], numit)
 }
 
-# find the minimum of a convex (not necessarily diff'able) function, assuming the given interval contains it
+# Find the minimum of a convex (not necessarily diff'able) function, assuming
+# the given interval contains it
 gen.bisect <- function(fun, left, right, numit)
 {
 	middle <- runif(1, left, right)
