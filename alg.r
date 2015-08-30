@@ -50,7 +50,7 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 	decr <- 1;	# Average error decrease
 	while (decr > pl$eps | i < 10) {
 		# Compute error and average error decrease
-		err <- sum(ifelse(Y!=0, (X-Y)^2, 0))/len
+		err <- sum((Y!=0) * (X-Y)^2)/len
 		if (debug) print(err)
 		errvec <- c(err, errvec)
 		hist <- min(pl$maxhist, length(errvec))
@@ -59,7 +59,7 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 		alpha <- 2/(i+2);	i <- i+1
 		# Compute "symmetricized" gradient matrix of
 		# f(X) = \sum_(\Omega+(0,m)) (X_ij-Y_ij)^2
-		Nabla <- ifelse(Y!=0, 2*(X-Y), 0)
+		Nabla <- 2 * (Y != 0) * (X-Y)
 
 		# Compute an eigenvector corresponding to the greatest eigenvalue
 		v <- power.method(Nabla, alpha*pl$Cf/pl$tr)
