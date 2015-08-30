@@ -11,11 +11,13 @@ alg.svd <- function(df, pl=alg.svd.pl(df), debug=FALSE)
 	# Mask containing a '1' for each given value
 	mask[(df$movie-1)*nrow(mat)+df$user] <- 1
 
-	# Error history, initialize with dummy values making no trouble.
+	# Error history of length 2, initialize with dummy values making no trouble.
 	errvec <- (max(df$stars) - min(df$stars)) * c(1, 1/(1-pl$eps)^2)
 	while (errvec[1]/errvec[2] < 1-pl$eps) {
 		# Compute error
-		errvec <- c(sqrt(sum((mat*mask-given)^2) / nrow(df)), errvec)
+		err <- sqrt(sum((mat*mask-given)^2) / nrow(df))
+		if (debug) print(err)
+		errvec <- c(err, errvec[1])
 		# Then overwrite with given values ...
 		mat <- mat*(1-mask)+given
 		sing <- La.svd(mat, pl$k, pl$k)
@@ -23,8 +25,6 @@ alg.svd <- function(df, pl=alg.svd.pl(df), debug=FALSE)
 		mat <- sing$u %*% diag(sing$d[1:pl$k],pl$k) %*% sing$v
 	}
 
-	if (debug)
-		print(errvec)
 	return(mat)
 }
 
@@ -50,7 +50,9 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 	decr <- 1;	# Average error decrease
 	while (decr > pl$eps | i < 10) {
 		# Compute error and average error decrease
-		errvec <- c(sum(ifelse(Y!=0, (X-Y)^2, 0))/len, errvec)
+		err <- sum(ifelse(Y!=0, (X-Y)^2, 0))/len
+		if (debug) print(err)
+		errvec <- c(err, errvec)
 		hist <- min(pl$maxhist, length(errvec))
 		decr <- lm(errvec[1:hist] ~ as.numeric(1:hist))$coefficients[[2]]
 
@@ -66,8 +68,6 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 		X <- (1-alpha)*X + alpha*pl$tr * v %*% t(v)
 	}
 
-	if (debug)
-		print(errvec)
 	return(X[(m+1):(n+m),1:m])
 }
 
