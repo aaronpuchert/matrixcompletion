@@ -77,6 +77,16 @@ crosseval <- function(df, m, alg, params)
 	return(df)
 }
 
+# Cross-evaluation error depending on a parameter
+error.plot <- function(df, cvm, alg, params, target)
+{
+	function(x) {
+		params[[target]] <- x
+		res <- crosseval(df, cvm, alg, params)
+		error.data(res)$error
+	}
+}
+
 # "Bisection" for parameter tuning
 bisect <- function(df, cvm, alg, params, target, rg, numit=20, int=FALSE)
 {
