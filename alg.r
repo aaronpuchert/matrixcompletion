@@ -1,3 +1,17 @@
+### OPENCL HELPERS ###
+# Read kernel from file
+read.kernel <- function(device, name, file.name)
+{
+	code <- readChar(file.name, nchars=file.info(file.name)$size)
+	oclSimpleKernel(device, name, code, "single")
+}
+
+# Read all kernels we need here. Pass an OpenCL device as parameter 'device'.
+load.kernels <- function(device)
+{
+	kernel.matvecmul <<- read.kernel(device, "matvecmul", "matmul.cl")
+}
+
 ### ALGORITHMS
 # SVD algorithm with rank k approximation, stops when error decrease is below eps.
 alg.svd <- function(df, pl=alg.svd.pl(df), debug=FALSE)
@@ -74,6 +88,16 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 alg.hazan.pl <- function(df, tr, digits=2, Cf=curvature(df[c(1,2)]), maxhist=50)
 	list(tr=tr, eps=10^-digits, Cf=tr^2 * Cf, maxhist=maxhist)
 
+# OpenCL implementation of matrix-vector-multiplication
+# Matrix is required to be a row-wise vectorized form of the matrix
+mul.vecmat <- function(matrix, vector)
+{
+	dim.input <- length(vector)
+	dim.output <- as.integer(length(matrix) / length(vector))
+	output <- oclRun(kernel.matvecmul, dim.output, matrix, as.clFloat(vector), dim.input)
+	matrix(output, ncol=1)
+}
+
 # "Power method" to compute an eigenvector corresponding to the greatest eigenvalue
 power.method <- function(A, eps)
 {
@@ -81,9 +105,12 @@ power.method <- function(A, eps)
 	v <- runif(dim(A)[1])
 	v <- v / sqrt(sum(v*v))
 
+	# Serialize A and convert to float vector
+	A.vec <- as.clFloat(t(A))
+
 	l<-2; oldl<-1;	# not "correct", but works in high dimensions
 	while (l/oldl > 1 + eps) {
-		v <- A %*% v
+		v <- mul.vecmat(A.vec, v)
 		oldl <- l; l <- sqrt(sum(v*v))
 		v <- v/l
 	}
