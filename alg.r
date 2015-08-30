@@ -48,7 +48,7 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 	errvec <- (sum(ifelse(Y!=0, (X-Y)^2, 0))/len) * c(1/(1-pl$eps)^2, 1/(1-pl$eps)^4)
 
 	decr <- 1;	# Average error decrease
-	while (decr > pl$eps | i < 10) {
+	while (decr > pl$eps | i < 100) {
 		# Compute error and average error decrease
 		err <- sum((Y!=0) * (X-Y)^2)/len
 		if (debug) print(err)
@@ -71,7 +71,7 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 	return(X[(m+1):(n+m),1:m])
 }
 
-alg.hazan.pl <- function(df, tr, digits=2, Cf=curvature(df[c(1,2)]), maxhist=5)
+alg.hazan.pl <- function(df, tr, digits=2, Cf=curvature(df[c(1,2)]), maxhist=50)
 	list(tr=tr, eps=10^-digits, Cf=tr^2 * Cf, maxhist=maxhist)
 
 # "Power method" to compute an eigenvector corresponding to the greatest eigenvalue
