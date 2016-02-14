@@ -9,8 +9,11 @@ read.kernel <- function(context, name, file.name)
 # Read all kernels we need here. Pass an OpenCL context as parameter 'context'.
 load.kernels <- function(context)
 {
-	kernel.matvecmul <<- read.kernel(context, "matvecmul", "matmul.cl")
-	kernel.vecdiv <<- read.kernel(context, "vecdiv", "matmul.cl")
+	list(
+		context = context,
+		matvecmul = read.kernel(context, "matvecmul", "matmul.cl"),
+		vecdiv = read.kernel(context, "vecdiv", "matmul.cl")
+	)
 }
 
 ### ALGORITHMS
@@ -48,8 +51,11 @@ alg.svd.pl <- function(df, init=mean(df$stars), k=1, digits=2)
 
 # Hazan's algorithm with target trace tr, curvature constant Cf and eps as above,
 #	averaged on error history of maximum length maxhist.
-alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max(df$movie))), debug=FALSE)
+alg.hazan <- function(df, context, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max(df$movie))), debug=FALSE)
 {
+	# Read kernels
+	opencl <- load.kernels(context)
+
 	n <- max(df$user); m <- max(df$movie); len <- nrow(df)
 
 	# "Given" matrix Y we want to approximate
@@ -58,7 +64,7 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 	Y[(df$user-1+m)*(n+m)+df$movie] <- df$stars
 
 	# Initialize X = v*v^T with an eigenvector belonging to the greatest eigenvalue
-	i <- 0; v <- power.method(Y, pl$Cf/pl$tr)
+	i <- 0; v <- power.method(opencl, Y, pl$Cf/pl$tr)
 	X <- pl$tr * (v %*% t(v)) / sum(v*v)
 	errvec <- (sum(ifelse(Y!=0, (X-Y)^2, 0))/len) * c(1/(1-pl$eps)^2, 1/(1-pl$eps)^4)
 
@@ -77,7 +83,7 @@ alg.hazan <- function(df, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$user) + max
 		Nabla <- 2 * (Y != 0) * (X-Y)
 
 		# Compute an eigenvector corresponding to the greatest eigenvalue
-		v <- power.method(Nabla, alpha*pl$Cf/pl$tr)
+		v <- power.method(opencl, Nabla, alpha*pl$Cf/pl$tr)
 
 		# Blend old X with tr*v*v^T
 		X <- (1-alpha)*X + alpha*pl$tr * v %*% t(v)
@@ -92,30 +98,30 @@ alg.hazan.pl <- function(df, tr, digits=2, Cf=curvature(df[c(1,2)]), maxhist=50)
 # OpenCL implementation of matrix-vector-multiplication
 # Matrix is required to be a row-wise vectorized form of the matrix as numeric buffer.
 # The vector argument should also be a numeric OpenCL buffer.
-mul.vecmat <- function(matrix, vector)
+mul.vecmat <- function(opencl, matrix, vector)
 {
 	dim.input <- length(vector)
 	dim.output <- as.integer(length(matrix) / dim.input)
-	oclRun(kernel.matvecmul, dim.output, matrix, vector, dim.input)
+	oclRun(opencl$matvecmul, dim.output, matrix, vector, dim.input)
 }
 
 # "Power method" to compute an eigenvector corresponding to the greatest eigenvalue
-power.method <- function(A, eps)
+power.method <- function(opencl, A, eps)
 {
 	# Start with random normalized vector
 	v <- runif(dim(A)[1])
 	v <- v / sqrt(sum(v*v))
-	v.buf <- as.clBuffer(v, attributes(kernel.matvecmul)$context)
+	v.buf <- as.clBuffer(v, opencl$context)
 
 	# Serialize A and convert to float vector
-	A.buf <- as.clBuffer(as.numeric(t(A)), attributes(kernel.matvecmul)$context)
+	A.buf <- as.clBuffer(as.numeric(t(A)), opencl$context)
 
 	l<-2; oldl<-1;	# not "correct", but works in high dimensions
 	while (l/oldl > 1 + eps) {
-		v.buf <- mul.vecmat(A.buf, v.buf)
+		v.buf <- mul.vecmat(opencl, A.buf, v.buf)
 		v <- as.numeric(v.buf)
 		oldl <- l; l <- sqrt(sum(v*v))
-		v.buf <- oclRun(kernel.vecdiv, length(v), v.buf, l)
+		v.buf <- oclRun(opencl$vecdiv, length(v), v.buf, l)
 	}
 	return(as.numeric(v.buf))
 }
