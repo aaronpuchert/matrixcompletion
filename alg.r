@@ -1,15 +1,16 @@
 ### OPENCL HELPERS ###
 # Read kernel from file
-read.kernel <- function(device, name, file.name)
+read.kernel <- function(context, name, file.name)
 {
 	code <- readChar(file.name, nchars=file.info(file.name)$size)
-	oclSimpleKernel(device, name, code, "single")
+	oclSimpleKernel(context, name, code, "double")
 }
 
-# Read all kernels we need here. Pass an OpenCL device as parameter 'device'.
-load.kernels <- function(device)
+# Read all kernels we need here. Pass an OpenCL context as parameter 'context'.
+load.kernels <- function(context)
 {
-	kernel.matvecmul <<- read.kernel(device, "matvecmul", "matmul.cl")
+	kernel.matvecmul <<- read.kernel(context, "matvecmul", "matmul.cl")
+	kernel.vecdiv <<- read.kernel(context, "vecdiv", "matmul.cl")
 }
 
 ### ALGORITHMS
@@ -89,13 +90,13 @@ alg.hazan.pl <- function(df, tr, digits=2, Cf=curvature(df[c(1,2)]), maxhist=50)
 	list(tr=tr, eps=10^-digits, Cf=tr^2 * Cf, maxhist=maxhist)
 
 # OpenCL implementation of matrix-vector-multiplication
-# Matrix is required to be a row-wise vectorized form of the matrix
+# Matrix is required to be a row-wise vectorized form of the matrix as numeric buffer.
+# The vector argument should also be a numeric OpenCL buffer.
 mul.vecmat <- function(matrix, vector)
 {
 	dim.input <- length(vector)
-	dim.output <- as.integer(length(matrix) / length(vector))
-	output <- oclRun(kernel.matvecmul, dim.output, matrix, as.clFloat(vector), dim.input)
-	matrix(output, ncol=1)
+	dim.output <- as.integer(length(matrix) / dim.input)
+	oclRun(kernel.matvecmul, dim.output, matrix, vector, dim.input)
 }
 
 # "Power method" to compute an eigenvector corresponding to the greatest eigenvalue
@@ -104,17 +105,19 @@ power.method <- function(A, eps)
 	# Start with random normalized vector
 	v <- runif(dim(A)[1])
 	v <- v / sqrt(sum(v*v))
+	v.buf <- as.clBuffer(v, attributes(kernel.matvecmul)$context)
 
 	# Serialize A and convert to float vector
-	A.vec <- as.clFloat(t(A))
+	A.buf <- as.clBuffer(as.numeric(t(A)), attributes(kernel.matvecmul)$context)
 
 	l<-2; oldl<-1;	# not "correct", but works in high dimensions
 	while (l/oldl > 1 + eps) {
-		v <- mul.vecmat(A.vec, v)
+		v.buf <- mul.vecmat(A.buf, v.buf)
+		v <- as.numeric(v.buf)
 		oldl <- l; l <- sqrt(sum(v*v))
-		v <- v/l
+		v.buf <- oclRun(kernel.vecdiv, length(v), v.buf, l)
 	}
-	return(v)
+	return(as.numeric(v.buf))
 }
 
 # Compute lower bound for the "curvature constant" C_f

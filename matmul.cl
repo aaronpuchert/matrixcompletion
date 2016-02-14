@@ -1,16 +1,29 @@
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+
 __kernel void matvecmul(
-	__global float* output,
+	__global double* output,
 	const unsigned int outputsize,
-	__global float* matrix,
-	__global float* vector,
+	__global const double* matrix,
+	__global const double* vector,
 	const unsigned int inputsize)
 {
-	int i = get_global_id(0);
+	size_t i = get_global_id(0);
 
-	float sum = 0.0f;
-	__global float *column = matrix + i*inputsize;
+	double sum = 0.0f;
+	__global double *column = matrix + i*inputsize;
 	for (int j = 0; j < inputsize; ++j)
 		sum += column[j] * vector[j];
 
 	output[i] = sum;
+}
+
+__kernel void vecdiv(
+	__global double* output,
+	const unsigned int outputsize,
+	__global const double* input,
+	double factor)
+{
+	size_t i = get_global_id(0);
+
+	output[i] = input[i] / factor;
 }
