@@ -95,30 +95,17 @@ alg.hazan <- function(df, context, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$us
 alg.hazan.pl <- function(df, tr, digits=2, Cf=curvature(df[c(1,2)]), maxhist=50)
 	list(tr=tr, eps=10^-digits, Cf=tr^2 * Cf, maxhist=maxhist)
 
-# OpenCL implementation of matrix-vector-multiplication
-# Matrix is required to be a row-wise vectorized form of the matrix as numeric buffer.
-# The vector argument should also be a numeric OpenCL buffer.
-mul.vecmat <- function(opencl, matrix, vector)
-{
-	dim.input <- length(vector)
-	dim.output <- as.integer(length(matrix) / dim.input)
-	oclRun(opencl$matvecmul, dim.output, matrix, vector, dim.input)
-}
-
 # "Power method" to compute an eigenvector corresponding to the greatest eigenvalue
 power.method <- function(opencl, A, eps)
 {
 	# Start with random normalized vector
-	v <- runif(dim(A)[1])
-	v <- v / sqrt(sum(v*v))
-	v.buf <- as.clBuffer(v, opencl$context)
-
-	# Serialize A and convert to float vector
-	A.buf <- as.clBuffer(as.numeric(t(A)), opencl$context)
+	len <- dim(A)[1]
+	v <- runif(len)
+	v.buf <- as.clBuffer(v / sqrt(sum(v*v)), opencl$context)
 
 	l<-2; oldl<-1;	# not "correct", but works in high dimensions
 	while (l/oldl > 1 + eps) {
-		v.buf <- mul.vecmat(opencl, A.buf, v.buf)
+		v.buf <- oclRun(opencl$matvecmul, len, A, v.buf, len)
 		v <- as.numeric(v.buf)
 		oldl <- l; l <- sqrt(sum(v*v))
 		v.buf <- oclRun(opencl$vecdiv, length(v), v.buf, l)
