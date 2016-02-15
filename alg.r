@@ -87,7 +87,7 @@ alg.hazan <- function(df, context, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$us
 		# Compute error and average error decrease
 		# This kernel computes ifelse(Y != 0, (X-Y)^2, 0) and aggregates partially.
 		err <- sum(as.numeric(oclRun(opencl$error, n+m, X, Y))) / len
-		if (debug) print(err)
+		if (debug) print(c(i, err))
 		errvec <- c(err, errvec)
 		hist <- min(pl$maxhist, length(errvec))
 		decr <- lm(errvec[1:hist] ~ as.numeric(1:hist))$coefficients[[2]]
