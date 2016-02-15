@@ -11,8 +11,11 @@ load.kernels <- function(context)
 {
 	list(
 		context = context,
-		matvecmul = read.kernel(context, "matvecmul", "matmul.cl"),
-		vecdiv = read.kernel(context, "vecdiv", "matmul.cl")
+		error = read.kernel(context, "error", "kernels.cl"),
+		nabla = read.kernel(context, "nabla", "kernels.cl"),
+		blend = read.kernel(context, "blend", "kernels.cl"),
+		matvecmul = read.kernel(context, "matvecmul", "kernels.cl"),
+		vecdiv = read.kernel(context, "vecdiv", "kernels.cl")
 	)
 }
 
@@ -62,16 +65,24 @@ alg.hazan <- function(df, context, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$us
 	Y <- matrix(0, n+m, n+m)
 	Y[(df$movie-1)*(n+m)+df$user+m] <- df$stars
 	Y[(df$user-1+m)*(n+m)+df$movie] <- df$stars
+	Y <- as.clBuffer(as.numeric(t(Y)), opencl$context)
 
 	# Initialize X = v*v^T with an eigenvector belonging to the greatest eigenvalue
-	i <- 0; v <- power.method(opencl, Y, pl$Cf/pl$tr)
-	X <- pl$tr * (v %*% t(v)) / sum(v*v)
-	errvec <- (sum(ifelse(Y!=0, (X-Y)^2, 0))/len) * c(1/(1-pl$eps)^2, 1/(1-pl$eps)^4)
+	i <- 0
+	v <- power.method(opencl, Y, pl$Cf/pl$tr, n+m)
+	X <- as.clBuffer(rep(0.0, (n+m)^2), opencl$context)
+	# This kernel computes pl$tr * (v %*% t(v)) / sum(v*v)
+	v.vector <- as.numeric(v)
+	X <- oclRun(opencl$blend, (n+m)^2, X, 0.0, v, pl$tr / sum(v.vector*v.vector), n+m)
+	# This kernel computes ifelse(Y != 0, (X-Y)^2, 0) and computes partial sums.
+	errvec <- (sum(as.numeric(oclRun(opencl$error, n+m, X, Y)))/len)
+	errvec <- errvec * c(1/(1-pl$eps)^2, 1/(1-pl$eps)^4)
 
 	decr <- 1;	# Average error decrease
 	while (decr > pl$eps | i < 100) {
 		# Compute error and average error decrease
-		err <- sum((Y!=0) * (X-Y)^2)/len
+		# This kernel computes ifelse(Y != 0, (X-Y)^2, 0) and aggregates partially.
+		err <- sum(as.numeric(oclRun(opencl$error, n+m, X, Y))) / len
 		if (debug) print(err)
 		errvec <- c(err, errvec)
 		hist <- min(pl$maxhist, length(errvec))
@@ -80,15 +91,18 @@ alg.hazan <- function(df, context, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$us
 		alpha <- 2/(i+2);	i <- i+1
 		# Compute "symmetricized" gradient matrix of
 		# f(X) = \sum_(\Omega+(0,m)) (X_ij-Y_ij)^2
-		Nabla <- 2 * (Y != 0) * (X-Y)
+		# This kernel computes 2 * (Y != 0) * (X-Y).
+		Nabla <- oclRun(opencl$nabla, (n+m)^2, X, Y)
 
 		# Compute an eigenvector corresponding to the greatest eigenvalue
-		v <- power.method(opencl, Nabla, alpha*pl$Cf/pl$tr)
+		v <- power.method(opencl, Nabla, alpha*pl$Cf/pl$tr, n+m)
 
 		# Blend old X with tr*v*v^T
-		X <- (1-alpha)*X + alpha*pl$tr * v %*% t(v)
+		# The kernel computes (1-alpha)*X + alpha*pl$tr * v %*% t(v)
+		X <- oclRun(opencl$blend, (n+m)^2, X, 1-alpha, v, alpha*pl$tr, n+m)
 	}
 
+	X <- t(matrix(as.numeric(X), n+m))
 	return(X[(m+1):(n+m),1:m])
 }
 
@@ -96,21 +110,26 @@ alg.hazan.pl <- function(df, tr, digits=2, Cf=curvature(df[c(1,2)]), maxhist=50)
 	list(tr=tr, eps=10^-digits, Cf=tr^2 * Cf, maxhist=maxhist)
 
 # "Power method" to compute an eigenvector corresponding to the greatest eigenvalue
-power.method <- function(opencl, A, eps)
+# Matrix is required to be a row-wise vectorized form of the matrix as numeric buffer.
+# The result will be a numeric OpenCL buffer
+power.method <- function(opencl, A, eps, len)
 {
+	stopifnot(length(A) == len^2)
+
 	# Start with random normalized vector
-	len <- dim(A)[1]
 	v <- runif(len)
 	v.buf <- as.clBuffer(v / sqrt(sum(v*v)), opencl$context)
 
 	l<-2; oldl<-1;	# not "correct", but works in high dimensions
 	while (l/oldl > 1 + eps) {
+		# This kernel computes A %*% v.buf
 		v.buf <- oclRun(opencl$matvecmul, len, A, v.buf, len)
 		v <- as.numeric(v.buf)
 		oldl <- l; l <- sqrt(sum(v*v))
+		# This kernel computes v.buf / l
 		v.buf <- oclRun(opencl$vecdiv, length(v), v.buf, l)
 	}
-	return(as.numeric(v.buf))
+	return(v.buf)
 }
 
 # Compute lower bound for the "curvature constant" C_f
