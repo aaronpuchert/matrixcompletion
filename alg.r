@@ -80,6 +80,10 @@ alg.hazan <- function(df, context, pl=alg.hazan.pl(df, mean(df$stars)*(max(df$us
 
 	decr <- 1;	# Average error decrease
 	while (decr > pl$eps | i < 100) {
+		# Housekeeping: collect garbage every n-th call.
+		if ((i %/% 10) * 10 == i)
+			gc(verbose = FALSE)
+
 		# Compute error and average error decrease
 		# This kernel computes ifelse(Y != 0, (X-Y)^2, 0) and aggregates partially.
 		err <- sum(as.numeric(oclRun(opencl$error, n+m, X, Y))) / len
