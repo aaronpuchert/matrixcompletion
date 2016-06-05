@@ -1,23 +1,21 @@
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-
 /**
  * Compute ifelse(target != 0, (matrix-target)^2, 0) for two square matrices and
  * compute the sum over the rows/columns.
  */
 __kernel void error(
-	__global double* output,
+	__global numeric* output,
 	const unsigned int outputsize,
-	__global const double* matrix,
-	__global const double* target)
+	__global const numeric* matrix,
+	__global const numeric* target)
 {
 	size_t i = get_global_id(0);
 
-	double sum = 0.0;
-	__global const double *matrixCol = matrix + i*outputsize;
-	__global const double *targetCol = target + i*outputsize;
+	numeric sum = 0.0;
+	__global const numeric *matrixCol = matrix + i*outputsize;
+	__global const numeric *targetCol = target + i*outputsize;
 	for (int j = 0; j < outputsize; ++j)
 		if (targetCol[j] != 0) {
-			double diff = matrixCol[j] - targetCol[j];
+			numeric diff = matrixCol[j] - targetCol[j];
 			sum += diff * diff;
 		}
 
@@ -28,10 +26,10 @@ __kernel void error(
  * Compute the matrix 2 * ifelse(target != 0, matrix - target, 0).
  */
 __kernel void nabla(
-	__global double* output,
+	__global numeric* output,
 	const unsigned int outputsize,
-	__global const double* matrix,
-	__global const double* target)
+	__global const numeric* matrix,
+	__global const numeric* target)
 {
 	size_t i = get_global_id(0);
 
@@ -45,12 +43,12 @@ __kernel void nabla(
  * Blend the given matrix with an outer product of a vector.
  */
 __kernel void blend(
-	__global double* output,
+	__global numeric* output,
 	const unsigned int outputsize,
-	__global const double* matrix,
-	double matrixFactor,
-	__global const double* vector,
-	double vectorFactor,
+	__global const numeric* matrix,
+	numeric matrixFactor,
+	__global const numeric* vector,
+	numeric vectorFactor,
 	unsigned int length)
 {
 	size_t i = get_global_id(0);
@@ -60,16 +58,16 @@ __kernel void blend(
 }
 
 __kernel void matvecmul(
-	__global double* output,
+	__global numeric* output,
 	const unsigned int outputsize,
-	__global const double* matrix,
-	__global const double* vector,
+	__global const numeric* matrix,
+	__global const numeric* vector,
 	const unsigned int inputsize)
 {
 	size_t i = get_global_id(0);
 
-	double sum = 0.0;
-	__global const double *column = matrix + i*inputsize;
+	numeric sum = 0.0;
+	__global const numeric *column = matrix + i*inputsize;
 	for (int j = 0; j < inputsize; ++j)
 		sum += column[j] * vector[j];
 
@@ -77,10 +75,10 @@ __kernel void matvecmul(
 }
 
 __kernel void vecdiv(
-	__global double* output,
+	__global numeric* output,
 	const unsigned int outputsize,
-	__global const double* input,
-	double factor)
+	__global const numeric* input,
+	numeric factor)
 {
 	size_t i = get_global_id(0);
 

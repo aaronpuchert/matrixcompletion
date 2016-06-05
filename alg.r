@@ -3,7 +3,7 @@
 read.kernel <- function(context, name, file.name)
 {
 	code <- readChar(file.name, nchars=file.info(file.name)$size)
-	oclSimpleKernel(context, name, code, "double")
+	oclSimpleKernel(context, name, code)
 }
 
 # Read all kernels we need here. Pass an OpenCL context as parameter 'context'.
