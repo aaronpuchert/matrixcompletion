@@ -1,21 +1,16 @@
 ### OPENCL HELPERS ###
-# Read kernel from file
-read.kernel <- function(context, name, file.name)
-{
-	code <- readChar(file.name, nchars=file.info(file.name)$size)
-	oclSimpleKernel(context, name, code)
-}
-
 # Read all kernels we need here. Pass an OpenCL context as parameter 'context'.
 load.kernels <- function(context)
 {
+	kernels.filename <- "kernels.cl"
+	code <- readChar(kernels.filename, nchars=file.info(kernels.filename)$size)
 	list(
 		context = context,
-		error = read.kernel(context, "error", "kernels.cl"),
-		nabla = read.kernel(context, "nabla", "kernels.cl"),
-		blend = read.kernel(context, "blend", "kernels.cl"),
-		matvecmul = read.kernel(context, "matvecmul", "kernels.cl"),
-		vecdiv = read.kernel(context, "vecdiv", "kernels.cl")
+		error = oclSimpleKernel(context, "error", code),
+		nabla = oclSimpleKernel(context, "nabla", code),
+		blend = oclSimpleKernel(context, "blend", code),
+		matvecmul = oclSimpleKernel(context, "matvecmul", code),
+		vecdiv = oclSimpleKernel(context, "vecdiv", code)
 	)
 }
 
